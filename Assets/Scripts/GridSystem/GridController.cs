@@ -4,30 +4,30 @@ using UnityEngine;
 
 public class GridController : MonoBehaviour
 {
+    [SerializeField] GridData gridData;
+
     [SerializeField] int tileCountToDestroy = 3;
-    [SerializeField] GameObject tilePrefab;
+
+    [Tooltip ("Enter 0 for auto fit to screen")]
     [SerializeField] int gridWidth;
+    [Tooltip ("Enter 0 for auto fit to screen")]
     [SerializeField] int gridHeight;
 
-    [SerializeField] float cellSize = 1;
-    const float evenTileOffset = 0.5f;
-    const float yOffsetMultiplier = 0.866f;
-
-    TileObject[,] tileMatrix;
+    protected TileObject[,] tileMatrix;
 
     Plane plane = new Plane(Vector3.up, 0);
 
-    TileObject highlighted=null;
+    TileObject highlighted = null;
 
     bool isCreated = false;
-
     float padding = 0.5f;
+
 
     void Start()
     {
+        if(gridWidth > 0 && gridHeight > 0) CameraController.instance.CalculateCameraPos(gridWidth, gridHeight, gridData);
         if (gridWidth == 0) CalculateMaxWidth();
         if (gridHeight == 0) CalculateMaxHeigth();
-
         tileMatrix = new TileObject[gridWidth, gridHeight];
         StartCoroutine(CreateGrid());
     }
@@ -45,10 +45,10 @@ public class GridController : MonoBehaviour
 
     void FindClickedTile(Vector3 clickPos)
     {
-        clickPos.x += (clickPos.y % 2) * cellSize * evenTileOffset;
+        clickPos.x += (clickPos.y % 2) * gridData.cellSize * gridData.evenTileOffset;
 
-        Vector2Int roughPos = new Vector2Int(Mathf.RoundToInt(clickPos.x / cellSize),
-            Mathf.RoundToInt(clickPos.z / (cellSize * yOffsetMultiplier)));
+        Vector2Int roughPos = new Vector2Int(Mathf.RoundToInt(clickPos.x / gridData.cellSize),
+            Mathf.RoundToInt(clickPos.z / (gridData.cellSize * gridData.yOffsetMultiplier)));
 
         if (roughPos.x < 0 || roughPos.y < 0 || roughPos.x >= tileMatrix.GetLength(0) || roughPos.y >= tileMatrix.GetLength(1)) return;
 
@@ -81,15 +81,9 @@ public class GridController : MonoBehaviour
         {
             tileObjects[0].NegativeShake();
         }
-        //highlighted.HighlightObject();
-        
-        //foreach (var tile in FindNeighbours(highlighted.myIndex))
-        //{
-        //    tileMatrix[tile.x, tile.y].HighlightObject();
-        //}
     }
 
-    public List<Vector2Int> FindNeighbours(Vector2Int index)
+    public virtual List<Vector2Int> FindNeighbours(Vector2Int index)
     {
         List<Vector2Int> neighbourList= new List<Vector2Int>();
         if(index.x - 1 >=0) neighbourList.Add(new Vector2Int(index.x-1, index.y));
@@ -114,17 +108,17 @@ public class GridController : MonoBehaviour
 
     IEnumerator CreateGrid()
     {
-        float tileWidth = cellSize;
-        float tileHeight = cellSize * yOffsetMultiplier;
+        float tileWidth = gridData.cellSize;
+        float tileHeight = gridData.cellSize * gridData.yOffsetMultiplier;
 
         for (int y = 0; y < gridHeight; y++)
         {
             for (int x = 0; x < gridWidth; x++)
             {
-                float xPos = x * tileWidth + (y % 2 * tileWidth * evenTileOffset);
+                float xPos = x * tileWidth + (y % 2 * tileWidth * gridData.evenTileOffset);
                 float yPos = y * tileHeight;
 
-                GameObject tile = Instantiate(tilePrefab, new Vector3(xPos, 0, yPos), Quaternion.identity);
+                GameObject tile = Instantiate(gridData.tilePrefab, new Vector3(xPos, 0, yPos), Quaternion.identity);
                 tile.transform.parent = transform;
                 TileObject tileObj = tile.GetComponent<TileObject>();
                 tileMatrix[x, y] = tileObj;
@@ -142,14 +136,14 @@ public class GridController : MonoBehaviour
     {
         Vector3 leftBorder = GetScreenToWorldPoint(Vector2.zero);
         Vector3 rightBorder = GetScreenToWorldPoint(new Vector2(Screen.width, 0));
-        gridWidth = (int)((rightBorder.x - leftBorder.x - evenTileOffset - padding)/cellSize);
+        gridWidth = (int)((rightBorder.x - leftBorder.x - gridData.evenTileOffset - padding)/gridData.cellSize);
     }
 
     void CalculateMaxHeigth()
     {
         Vector3 bottomBorder = GetScreenToWorldPoint(Vector2.zero);
         Vector3 topBorder = GetScreenToWorldPoint(new Vector2(0, Screen.height));
-        gridHeight = (int)((topBorder.z - bottomBorder.z - padding) / cellSize);
+        gridHeight = (int)((topBorder.z - bottomBorder.z - padding) / gridData.cellSize);
     }
 
     Vector3 GetScreenToWorldPoint(Vector2 screenPoint)
@@ -168,4 +162,5 @@ public class GridController : MonoBehaviour
     {
         return tileMatrix[index.x, index.y];
     }
+
 }
